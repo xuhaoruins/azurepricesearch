@@ -1,33 +1,6 @@
-import { OpenAI } from 'openai';
-import { pricingSchema, type PricingQueryResponse } from './schema';
-import { azureRegions } from './azure-regions';
-
-const apidef = `
-| Field          | Example Values              | Definition |
-|----------------|----------------------------|------------|
-| armRegionName  | eastus, westeurope        | Azure region name |
-| productName    | Virtual Machines, Storage  | Product category |
-| meterName      | Standard D2s v3, P10      | Specific SKU/tier |
-`;
-
-const examples = [
-    {
-        query: "Show me virtual machine prices in East US",
-        response: {
-            armRegionName: "eastus",
-            productName: "Virtual Machines",
-            meterName: "Standard D2s v3"
-        }
-    },
-    {
-        query: "What's the price of blob storage in West Europe?",
-        response: {
-            armRegionName: "westeurope",
-            productName: "Storage",
-            meterName: "Standard"
-        }
-    }
-];
+import OpenAI from 'openai';
+import type { PricingQueryResponse } from './schema';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 export async function queryPricing(prompt: string): Promise<string> {
     if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_BASE_URL) {
@@ -36,13 +9,13 @@ export async function queryPricing(prompt: string): Promise<string> {
 
     const client = new OpenAI({
         baseURL: process.env.OPENAI_API_BASE_URL,
-        apiKey: process.env.GITHUB_TOKEN, // 请确认该环境变量是否正确（通常是 OPENAI_API_KEY）
+        apiKey: process.env.GITHUB_TOKEN,
         defaultQuery: { 'api-version': '2023-07-01-preview' }
     });
 
     const messages = [
         {
-            role: "system",
+            role: "system" as const,
             content: `You are an Azure pricing assistant. Extract relevant Azure service information from user queries.
                 Extract exactly these three fields:
                 1. armRegionName: The Azure region name (e.g., eastus, westeurope)
@@ -66,7 +39,7 @@ export async function queryPricing(prompt: string): Promise<string> {
                 "meterName": "Standard"
                 }`
         },
-        { role: "user", content: prompt }
+        { role: "user" as const, content: prompt }
     ];
 
     try {
@@ -98,7 +71,7 @@ export async function queryPricing(prompt: string): Promise<string> {
 
 export async function fetchPrices(filter: string) {
     const api_url = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview";
-    let allItems: any[] = [];
+    let allItems: PricingItem[] = [];
     let nextPageUrl = `${api_url}&$filter=${filter}`;
 
     while (nextPageUrl) {

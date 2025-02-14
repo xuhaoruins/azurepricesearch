@@ -84,7 +84,7 @@ export default function Home() {
         <p className="text-gray-600 mb-8">
           Search for Azure service prices using natural language. Try queries like:
           <br />
-          "Show me virtual machine F16s v2 prices in West Europe" or "App Service P3mv3 in east us".
+          &quot;Show me virtual machine F16s v2 prices in West Europe&quot; or &quot;App Service P3mv3 in east us&quot;.
           <br />
           <br />
           This app created by GitHub Copilot Agent mode, GitHub Models, Azure Static Web App and Next.js
