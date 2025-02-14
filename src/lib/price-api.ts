@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import type { PricingQueryResponse } from './schema';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 export async function queryPricing(prompt: string): Promise<string> {
     if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_BASE_URL) {
