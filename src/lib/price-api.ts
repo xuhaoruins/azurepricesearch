@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-import { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 
 // 定义 Azure VM 大小类型，与 priceagent.py 对齐
 export const azureVmSize = [
@@ -316,8 +316,10 @@ export async function queryPricing(prompt: string): Promise<{filter: string, ite
         // 删除特定消息
         const filteredMessages = messages.filter(m => 
             !(m.role === "user" && (
-                m.content.startsWith("Azure region mapping:") || 
-                m.content.startsWith("Azure virtual machine size context:")
+                (typeof m.content === "string" && (
+                    m.content.startsWith("Azure region mapping:") || 
+                    m.content.startsWith("Azure virtual machine size context:")
+                ))
             ))
         );
         
