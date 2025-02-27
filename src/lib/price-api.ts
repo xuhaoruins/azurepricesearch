@@ -268,7 +268,7 @@ export async function queryPricing(prompt: string): Promise<{filter: string, ite
     const functions = [
         {
             name: "odata_query",
-            description: "根据传入的 OData 查询条件从 Azure 零售价格 API 中获取数据，并返回合并后的 JSON 记录列表，仅使用 `armRegionName` and `armSkuName`进行模糊查询",
+            description: "根据传入的 OData 查询条件从 Azure 零售价格 API 中获取数据，并返回合并后的 JSON 记录列表，仅使用 armRegionName and armSkuName进行模糊查询.",
             parameters: {
                 type: "object",
                 properties: {
@@ -353,7 +353,7 @@ export async function queryPricing(prompt: string): Promise<{filter: string, ite
             return {
                 filter: queryFilter,
                 items: priceData.Items,
-                aiResponse: "您查询的条件过于宽泛，请查询更加具体的产品。"
+                aiResponse: "Your question is too broad. Please provide a more specific description."
             };
         }
     } catch (error) {
