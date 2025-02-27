@@ -29,7 +29,7 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
     setMessages([
       {
         role: 'assistant',
-        content: 'Welcome to Azure Price Agent! You can ask about Azure product prices using natural language. For example: "What is the price of Redis Cache General Purpose B5 in South Central US?"',
+        content: 'Welcome to Azure Price Agent! You can ask about Azure product prices using natural language. For example: "What is the price of NC24rs in east asia? or "',
         id: 'welcome-message'
       }
     ]);

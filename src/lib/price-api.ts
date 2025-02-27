@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { azureVmSize } from './azurevmsize';
 import { azureRegions } from './azure-regions';
@@ -6,13 +7,23 @@ import { agentPrompt } from './agentPrompt';
 
 export async function queryPricing(prompt: string): Promise<{ filter: string, items: PricingItem[], aiResponse: string }> {
     if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_BASE_URL) {
-        throw new Error('Missing environment variables');
+        throw new Error('Missing GitHub environment variables');
+    }
+
+    if (!process.env.AOAI_KEY || !process.env.AOAI_API_BASE_URL) {
+        throw new Error('Missing Azure environment variables');
     }
 
     const client = new OpenAI({
         baseURL: process.env.OPENAI_API_BASE_URL,
         apiKey: process.env.GITHUB_TOKEN,
-        defaultQuery: { 'api-version': '2023-07-01-preview' }
+        defaultQuery: { 'api-version': '2024-10-21' }
+    });
+
+    const azureClient = new AzureOpenAI({
+        endpoint: process.env.AOAI_API_BASE_URL,
+        apiKey: process.env.AOAI_KEY,
+        apiVersion: '2024-05-01-preview',
     });
 
     const functionMessages: ChatCompletionMessageParam[] = [
@@ -35,7 +46,7 @@ export async function queryPricing(prompt: string): Promise<{ filter: string, it
     const functions = [
         {
             name: "odata_query",
-            description: "根据传入的 OData 查询条件从 Azure 零售价格 API 中获取数据，并返回合并后的 JSON 记录列表，仅使用 armRegionName and armSkuName进行模糊查询.",
+            description: "根据传入的 OData 查询条件从 Azure 零售价格 API 中获取数据，并返回合并后的 JSON 记录列表，仅使用 armRegionName and armSkuName 进行模糊查询.",
             parameters: {
                 type: "object",
                 properties: {
@@ -88,11 +99,12 @@ export async function queryPricing(prompt: string): Promise<{ filter: string, it
             { role: "user", content: prompt }
         ];
 
+        // Second call
         try {
-            const secondResponse = await client.chat.completions.create({
+            const secondResponse = await azureClient.chat.completions.create({
                 messages: chatMessages,
-                temperature: 0.5,
-                model: process.env.MODEL_NAME || 'gpt-4o-mini'
+                temperature: 0.7,
+                model: 'gpt-4o-mini'
             });
 
             const aiResponse = secondResponse.choices[0]?.message?.content || '';
@@ -116,6 +128,7 @@ export async function queryPricing(prompt: string): Promise<{ filter: string, it
                 aiResponse: `Error during processing: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
         }
+
     } catch (error) {
         console.error('OpenAI API Error:', error);
         throw new Error('Failed to process query');
