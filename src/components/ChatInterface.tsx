@@ -151,10 +151,15 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     skipHtml={true}
+                    // components={{
+                    //   pre: ({node, ...props}) => <pre {...props} />,
+                    //   code: ({node, ...props}) => <code {...props} />,
+                    //   p: ({node, ...props}) => <p {...props} />
+                    // }}
                     components={{
-                      pre: ({node, ...props}) => <pre {...props} />,
-                      code: ({node, ...props}) => <code {...props} />,
-                      p: ({node, ...props}) => <p {...props} />
+                        pre: (props) => <pre {...props} />,
+                        code: (props) => <code {...props} />,
+                        p: (props) => <p {...props} />
                     }}
                   >
                     {msg.content}

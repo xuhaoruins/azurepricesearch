@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+import { ChatCompletionMessageParam } from 'openai/resources';
+
 // 定义 Azure VM 大小类型，与 priceagent.py 对齐
 export const azureVmSize = [
     {
@@ -219,7 +221,7 @@ export const azureRegions = [
   }
 ];
 
-export async function queryPricing(prompt: string): Promise<{filter: string, items: any[], aiResponse: string}> {
+export async function queryPricing(prompt: string): Promise<{filter: string, items: PricingItem[], aiResponse: string}> {
     if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_BASE_URL) {
         throw new Error('Missing environment variables');
     }
@@ -231,20 +233,35 @@ export async function queryPricing(prompt: string): Promise<{filter: string, ite
     });
 
     // 构建与 priceagent.py 类似的系统消息
-    const messages = [
+    // const messages = [
+    //     {
+    //         role: "system" as const,
+    //         content: `你是Azure价格查询助手，如果用户询问Azure产品价格相关问题，必须先调用odata_query，才能够回复。`
+    //     },
+    //     { 
+    //         role: "user" as const, 
+    //         content: `Azure region mapping: ${JSON.stringify(azureRegions)}` 
+    //     },
+    //     { 
+    //         role: "user" as const, 
+    //         content: `Azure virtual machine size context: ${JSON.stringify(azureVmSize)}` 
+    //     },
+    //     { role: "user" as const, content: prompt }
+    // ];
+    const messages: ChatCompletionMessageParam[] = [
         {
-            role: "system" as const,
+            role: "system",
             content: `你是Azure价格查询助手，如果用户询问Azure产品价格相关问题，必须先调用odata_query，才能够回复。`
         },
         { 
-            role: "user" as const, 
+            role: "user", 
             content: `Azure region mapping: ${JSON.stringify(azureRegions)}` 
         },
         { 
-            role: "user" as const, 
+            role: "user", 
             content: `Azure virtual machine size context: ${JSON.stringify(azureVmSize)}` 
         },
-        { role: "user" as const, content: prompt }
+        { role: "user", content: prompt }
     ];
 
     // 定义函数
@@ -355,7 +372,7 @@ export async function fetchPrices(filter: string) {
         }
         const data = await response.json();
         if (data.Items && Array.isArray(data.Items)) {
-            const processedItems = data.Items.map((item: any) => {
+            const processedItems = data.Items.map((item: Record<string, unknown>) => {
                 delete item.currencyCode;
                 delete item.unitPrice;
                 delete item.isPrimaryMeterRegion;
