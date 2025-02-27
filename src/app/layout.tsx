@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Azure Retail Prices Search",
+  title: "Azure Price Agent",
   description: "Search Azure service prices using natural language",
   icons: {
     icon: '/favicon.ico',

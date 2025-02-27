@@ -1,4 +1,4 @@
-import { queryPricing, convertJsonToFilter, fetchPrices } from '@/lib/price-api';
+import { queryPricing, fetchPrices } from '@/lib/price-api';
 import { NextRequest } from 'next/server';
 
 export const maxDuration = 60; // Set max duration to 60 seconds
@@ -10,27 +10,16 @@ export async function POST(request: NextRequest) {
             return Response.json({ error: 'Prompt is required' }, { status: 400 });
         }
         
-        // Get query from OpenAI
-        const queryResult = await queryPricing(prompt);
-        console.log('OpenAI Response:', queryResult);
-        
-        // Convert to filter
-        const filter = convertJsonToFilter(queryResult);
-        console.log('Generated Filter:', filter);
-        
-        // Fetch prices from Azure with pagination
-        const data = await fetchPrices(filter);
-        console.log('Items found:', data.Items?.length || 0);
-        
-        if (!data.Items || !Array.isArray(data.Items)) {
-            return Response.json({ Items: [] });
-        }
+        // 使用更新后的 queryPricing 函数获取 OData 查询条件、数据和 AI 响应
+        const result = await queryPricing(prompt);
+        console.log('Generated OData Filter:', result.filter);
+        console.log('Items found:', result.items?.length || 0);
         
         return Response.json({
-            Items: data.Items,
-            totalCount: data.Items.length,
-            filter: filter,
-            query: queryResult
+            Items: result.items || [],
+            totalCount: result.items?.length || 0,
+            filter: result.filter,
+            aiResponse: result.aiResponse // 添加 AI 响应到返回结果
         });
     } catch (error) {
         console.error('Error:', error);
