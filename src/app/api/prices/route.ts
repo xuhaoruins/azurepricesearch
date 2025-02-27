@@ -1,4 +1,4 @@
-import { queryPricing, fetchPrices } from '@/lib/price-api';
+import { queryPricing } from '@/lib/price-api';
 import { NextRequest } from 'next/server';
 
 export const maxDuration = 60; // Set max duration to 60 seconds

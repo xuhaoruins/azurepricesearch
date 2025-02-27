@@ -355,16 +355,21 @@ export async function fetchPrices(filter: string) {
         }
         const data = await response.json();
         if (data.Items && Array.isArray(data.Items)) {
-            // 过滤不需要的字段，与 priceagent.py 一致
             const processedItems = data.Items.map((item: any) => {
-                const { 
-                    currencyCode, unitPrice, isPrimaryMeterRegion, 
-                    CustomerEntityId, CustomerEntityType, tierMinimumUnits,
-                    effectiveStartDate, meterId, productId, skuId,
-                    serviceName, serviceFamily, serviceId, 
-                    ...rest 
-                } = item;
-                return rest;
+                delete item.currencyCode;
+                delete item.unitPrice;
+                delete item.isPrimaryMeterRegion;
+                delete item.CustomerEntityId;
+                delete item.CustomerEntityType;
+                delete item.tierMinimumUnits;
+                delete item.effectiveStartDate;
+                delete item.meterId;
+                delete item.productId;
+                delete item.skuId;
+                delete item.serviceName;
+                delete item.serviceFamily;
+                delete item.serviceId;
+                return item;
             });
             allItems = [...allItems, ...processedItems];
         }
