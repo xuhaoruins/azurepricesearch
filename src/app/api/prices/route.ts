@@ -1,4 +1,4 @@
-import { queryPricing } from '@/lib/price-api';
+import { queryPricingWithStreamingResponse } from '@/lib/price-api';
 import { NextRequest } from 'next/server';
 
 export const maxDuration = 60; // Set max duration to 60 seconds
@@ -10,16 +10,16 @@ export async function POST(request: NextRequest) {
             return Response.json({ error: 'Prompt is required' }, { status: 400 });
         }
         
-        // 使用更新后的 queryPricing 函数获取 OData 查询条件、数据和 AI 响应
-        const result = await queryPricing(prompt);
-        console.log('Generated OData Filter:', result.filter);
-        console.log('Items found:', result.items?.length || 0);
+        // 使用更新后的 queryPricing 函数，返回流式响应
+        const stream = await queryPricingWithStreamingResponse(prompt);
         
-        return Response.json({
-            Items: result.items || [],
-            totalCount: result.items?.length || 0,
-            filter: result.filter,
-            aiResponse: result.aiResponse // 添加 AI 响应到返回结果
+        // 返回流式响应
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
         });
     } catch (error) {
         console.error('Error:', error);

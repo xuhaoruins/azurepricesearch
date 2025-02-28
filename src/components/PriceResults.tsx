@@ -12,10 +12,10 @@ export default function PriceResults({ items }: { items: PricingItem[] }) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!items.length) return null;
-
-  // Sort and filter items
+  // Sort and filter items - 将 useMemo 移到条件判断之前
   const sortedAndFilteredItems = useMemo(() => {
+    if (!items.length) return [];
+    
     let filteredItems = items;
     
     // Apply search filter if any
@@ -53,6 +53,9 @@ export default function PriceResults({ items }: { items: PricingItem[] }) {
       return 0;
     });
   }, [items, sortField, sortDirection, searchTerm]);
+
+  // 早期返回放在 useMemo 之后
+  if (!items.length) return null;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

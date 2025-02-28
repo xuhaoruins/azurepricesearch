@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PricingItem } from '@/lib/price-api';
 import ChatInterface from '@/components/ChatInterface';
 import PriceResults from '@/components/PriceResults';
@@ -8,74 +8,100 @@ import Image from 'next/image';
 
 export default function Home() {
   const [results, setResults] = useState<PricingItem[]>([]);
+  const [chatHeight, setChatHeight] = useState('450px');
+
+  // 根据屏幕高度动态调整聊天框高度
+  useEffect(() => {
+    const updateChatHeight = () => {
+      const vh = window.innerHeight;
+      // 为聊天框分配更合理的高度，基于屏幕高度的百分比而不是固定值
+      // 保留顶部标题区域和底部边距的空间
+      const headerHeight = 80; // 标题区域估计高度
+      const bottomMargin = 20; // 底部边距
+      const availableHeight = vh - headerHeight - bottomMargin;
+      
+      // 确保聊天窗口有足够但不过大的高度
+      const minHeight = 320;
+      const maxHeight = 700;
+      const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight * 0.85));
+      
+      setChatHeight(`${calculatedHeight}px`);
+    };
+
+    // 初始化和窗口大小改变时更新高度
+    updateChatHeight();
+    window.addEventListener('resize', updateChatHeight);
+    return () => window.removeEventListener('resize', updateChatHeight);
+  }, []);
 
   const handleResults = ({items, filter}: {items: PricingItem[], filter: string}) => {
     setResults(items);
-    // Only log to console, don't display in frontend
     console.log('OData Query Filter:', filter);
-    // 移除自动滚动到结果位置的代码
-    // window.scrollTo({top: document.getElementById('results')?.offsetTop || 0, behavior: 'smooth'});
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4 md:py-12">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-3 px-4 md:py-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header section with improved visual design */}
-        <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-10">
+        {/* 紧凑化的标题区域 */}
+        <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden mb-4">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5 z-0"></div>
           
-          <div className="relative z-10 p-6 md:p-8 lg:p-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-700">
+          <div className="relative z-10 p-3 md:p-4">
+            {/* 更紧凑的顶部布局，结合标题和图标 */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-1">
+                  <div className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-0.5 z-10">
+                    <div className="bg-white rounded-full p-1">
+                      <Image src="/globe.svg" alt="Azure" width={18} height={18} className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="rounded-full bg-gradient-to-r from-purple-500 to-blue-600 p-0.5 z-0">
+                    <div className="bg-white rounded-full p-1">
+                      <Image src="/window.svg" alt="Azure" width={18} height={18} className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+                <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-700">
                   Azure Price Agent
                 </h1>
-                <p className="text-gray-600 text-lg">
-                  Search Azure pricing with natural language
-                </p>
               </div>
               
-              <div className="mt-4 md:mt-0 flex items-center space-x-1">
-                <div className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-1">
-                  <div className="bg-white rounded-full p-1">
-                    <Image src="/globe.svg" alt="Azure Cloud" width={24} height={24} className="w-6 h-6" />
-                  </div>
-                </div>
-                <div className="rounded-full bg-gradient-to-r from-blue-500 to-purple-600 p-1 ml-2">
-                  <div className="bg-white rounded-full p-1">
-                    <Image src="/window.svg" alt="Azure Window" width={24} height={24} className="w-6 h-6" />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Introduction & Resources */}
-            <div className="mb-6 pb-6 border-b border-gray-100">
-              <div className="flex flex-wrap items-center text-sm gap-y-2 gap-x-6">
+              {/* 更紧凑的链接区 */}
+              <div className="flex items-center text-xs gap-3">
                 <a href="https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview" 
                    className="flex items-center hover:text-blue-600 transition-colors" 
                    target="_blank" 
                    rel="noopener noreferrer">
-                  <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3 h-3 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                   </svg>
-                  Data Source: Azure Retail Prices API
+                  API
                 </a>
                 
                 <a href="https://github.com/xuhaoruins/azurepricesearch" 
                    className="flex items-center hover:text-blue-600 transition-colors"
                    target="_blank" 
                    rel="noopener noreferrer">
-                  <svg className="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-3 h-3 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
                   </svg>
-                  GitHub Repository
+                  GitHub
                 </a>
               </div>
             </div>
             
-            <div className="h-[550px] md:h-[600px] rounded-xl overflow-hidden border border-gray-200 shadow-lg">
+            {/* 短小介绍线 */}
+            <p className="text-xs text-gray-500 mb-2">
+              Search Azure pricing with natural language
+            </p>
+            
+            {/* 扩大的聊天窗口 */}
+            <div 
+              style={{ height: chatHeight }} 
+              className="rounded-xl overflow-hidden border border-gray-200 shadow-lg transition-all"
+            >
               <ChatInterface onResults={handleResults} />
             </div>
           </div>

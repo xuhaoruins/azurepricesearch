@@ -22,6 +22,7 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [typingAnimation, setTypingAnimation] = useState(false);
+  const [streamingResponse, setStreamingResponse] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,7 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     }
-  }, [messages]);
+  }, [messages, streamingResponse]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +77,10 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
     }]);
     setLoading(true);
     setTypingAnimation(true);
+    setStreamingResponse('');
 
     try {
+      // 使用流式API
       const response = await fetch('/api/prices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,41 +92,132 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
         throw new Error(errorData.details || errorData.error || 'Query failed');
       }
 
-      const data = await response.json();
+      // 处理SSE流响应
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Failed to get reader from response');
       
-      // Use AI's detailed response instead of hardcoded response
-      let responseContent = data.aiResponse || 'I found some relevant information.';
-      
-      if (data.Items && Array.isArray(data.Items) && data.Items.length > 0) {
-        // If AI doesn't provide a response, use default message
-        if (!data.aiResponse) {
-          responseContent = `I found ${data.Items.length} matching price records.`;
+      const decoder = new TextDecoder();
+      let priceDataReceived = false;
+      let aiResponseComplete = false;
+      let fullAiResponse = '';
+      let buffer = ''; // 添加缓冲区用于处理不完整的 JSON
+
+      // 读取流式响应
+      while (!aiResponseComplete) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        
+        // 寻找完整的 SSE 消息
+        const messages = [];
+        let match;
+        // 移除 's' 标志，使用更兼容的方式处理换行符
+        const messageRegex = /data: ({.*?})\n\n/g;
+        
+        // 提取所有完整的消息
+        while ((match = messageRegex.exec(buffer)) !== null) {
+          messages.push(match[1]);
         }
         
-        // Pass result data to parent component
-        onResults({ 
-          items: data.Items,
-          filter: data.filter,
-          aiResponse: data.aiResponse
-        });
-      } else if (!data.aiResponse) {
-        responseContent = 'Sorry, no matching price information found. Please try a more specific query or use different terms.';
+        if (messages.length > 0) {
+          // 更新缓冲区，只保留未完成的部分
+          const lastIndex = buffer.lastIndexOf('data: {');
+          const lastComplete = buffer.lastIndexOf('\n\n', lastIndex) + 2;
+          buffer = lastIndex > lastComplete ? buffer.substring(lastIndex) : '';
+          
+          // 处理提取出的完整消息
+          for (const messageJson of messages) {
+            try {
+              const data = JSON.parse(messageJson);
+              
+              // 处理不同类型的消息
+              switch(data.type) {
+                case 'price_data':
+                  // 收到价格数据，先显示给用户
+                  priceDataReceived = true;
+                  onResults({
+                    items: data.data.Items,
+                    filter: data.data.filter,
+                    aiResponse: undefined // 先不设置AI响应，因为还在流式处理中
+                  });
+                  
+                  // 保持原始的加载状态消息，不显示处理记录数量
+                  // setMessages(prev => prev.map(msg => 
+                  //   msg.id === loadingMsgId 
+                  //     ? { ...msg, content: `Processing ${data.data.Items.length} price records...` } 
+                  //     : msg
+                  // ));
+                  break;
+                  
+                case 'ai_response_chunk':
+                  // 收到AI响应的一部分，追加到已有的流响应中
+                  if (priceDataReceived && data.data.content) {
+                    fullAiResponse += data.data.content;
+                    setStreamingResponse(fullAiResponse);
+                  }
+                  break;
+                  
+                case 'ai_response_complete':
+                  // AI响应完成
+                  aiResponseComplete = true;
+                  if (priceDataReceived) {
+                    // 隐藏流式响应，避免重复显示
+                    setStreamingResponse('');
+                    
+                    // 更新最终的消息
+                    setMessages(prev => prev.map(msg => 
+                      msg.id === loadingMsgId 
+                        ? { ...msg, content: fullAiResponse || data.data.content } 
+                        : msg
+                    ));
+                    
+                    // 确保也更新结果中的AI响应
+                    onResults({
+                      items: data.data.Items,
+                      filter: data.data.filter,
+                      aiResponse: fullAiResponse || data.data.content
+                    });
+                  }
+                  break;
+                  
+                case 'error':
+                  throw new Error(data.data.message || 'Unknown error in stream');
+              }
+            } catch (err) {
+              console.error('Error parsing SSE JSON:', err, messageJson);
+              // 如果是关键消息解析失败，尝试保持过程继续但记录错误
+              if (messageJson.includes('"type":"error"')) {
+                // 尝试提取错误信息，即使JSON解析失败
+                const errorMatch = messageJson.match(/"message"\s*:\s*"([^"]+)"/);
+                const errorMsg = errorMatch ? errorMatch[1] : 'Malformed error data from server';
+                throw new Error(errorMsg);
+              }
+            }
+          }
+        }
       }
       
-      // Show typing animation briefly before revealing full message
-      setTimeout(() => {
-        setTypingAnimation(false);
-        // Update assistant message - find the loading message by ID and replace it
+      // 如果流结束但未收到完成消息，完成处理
+      if (!aiResponseComplete && priceDataReceived) {
+        // 更新最终消息
         setMessages(prev => prev.map(msg => 
           msg.id === loadingMsgId 
-            ? { ...msg, content: responseContent } 
+            ? { ...msg, content: fullAiResponse || "Response processing completed" } 
             : msg
         ));
-      }, 500);
+
+        setTypingAnimation(false);
+        setStreamingResponse('');
+      }
+      
     } catch (error) {
       console.error('Error:', error);
       
       setTypingAnimation(false);
+      setStreamingResponse('');
+      
       // Update error message - find the loading message by ID and replace it
       setMessages(prev => prev.map(msg => 
         msg.id === loadingMsgId 
@@ -211,6 +305,36 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
             </div>
           </div>
         ))}
+        
+        {/* 流式响应的显示 */}
+        {streamingResponse && (
+          <div className="mb-4 flex justify-start">
+            <div className="relative max-w-[85%] mr-auto">
+              <div className="p-3.5 rounded-2xl shadow-sm bg-gray-100 text-gray-800 border border-gray-200/50">
+                <div className="markdown-content">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    skipHtml={true}
+                    components={{
+                      pre: (props) => <pre className="bg-gray-800 text-white p-3 rounded-md overflow-auto my-2 text-sm" {...props} />,
+                      code: (props) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm" {...props} />,
+                      p: (props) => <p className="text-sm md:text-base mb-2 last:mb-0" {...props} />
+                    }}
+                  >
+                    {streamingResponse}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              
+              <div className="text-xs mt-1 px-1 text-gray-500">
+                Azure Price Agent
+              </div>
+              
+              <div className="absolute w-2 h-2 left-0 -ml-1 bg-gray-100 bottom-[16px] transform rotate-45"></div>
+            </div>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
