@@ -5,7 +5,7 @@ import { azureVmSize } from './azurevmsize';
 import { azureRegions } from './azure-regions';
 import { agentPrompt } from './agentPrompt';
 
-export async function queryPricing(prompt: string): Promise<{ filter: string, items: PricingItem[], aiResponse: string }> {
+export async function queryPricing(prompt: string): Promise<{ filter?: string, items?: PricingItem[], aiResponse: string }> {
     if (!process.env.GITHUB_TOKEN || !process.env.OPENAI_API_BASE_URL) {
         throw new Error('Missing GitHub environment variables');
     }
@@ -29,7 +29,7 @@ export async function queryPricing(prompt: string): Promise<{ filter: string, it
     const functionMessages: ChatCompletionMessageParam[] = [
         {
             role: "system",
-            content: `你是Azure价格查询助手，如果用户询问Azure产品价格相关问题，必须先调用odata_query，才能够回复。`
+            content: `你是Azure价格查询助手，如果用户询问Azure产品价格相关问题，必须先调用odata_query，才能够回复。如果用户询问其他问题，你可以委婉地拒绝。`
         },
         {
             role: "user",
@@ -70,10 +70,16 @@ export async function queryPricing(prompt: string): Promise<{ filter: string, it
         });
 
         const functionCall = response.choices[0]?.message?.function_call;
+        
+        // 如果没有触发function call，直接返回第一次response的内容
         if (!functionCall || functionCall.name !== "odata_query") {
-            throw new Error('Invalid function call response from AI');
+            const directResponse = response.choices[0]?.message?.content || 'No response generated';
+            return {
+                aiResponse: directResponse
+            };
         }
 
+        // 只有在function call被调用时才继续获取价格数据和进行second response
         const args = JSON.parse(functionCall.arguments || "{}");
         const queryFilter = args.query;
 
@@ -205,8 +211,20 @@ export async function queryPricingWithStreamingResponse(prompt: string): Promise
                 });
 
                 const functionCall = response.choices[0]?.message?.function_call;
+                
+                // 如果没有触发function call，直接返回第一次response的内容
                 if (!functionCall || functionCall.name !== "odata_query") {
-                    throw new Error('Invalid function call response from AI');
+                    const directResponse = response.choices[0]?.message?.content || 'No response generated';
+                    
+                    // 发送直接响应作为完整消息
+                    const directResponseData = {
+                        type: 'direct_response',
+                        data: { content: directResponse }
+                    };
+                    
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(directResponseData)}\n\n`));
+                    controller.close();
+                    return;
                 }
 
                 const args = JSON.parse(functionCall.arguments || "{}");

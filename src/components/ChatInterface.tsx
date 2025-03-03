@@ -181,6 +181,25 @@ export default function ChatInterface({ onResults }: { onResults: (data: Results
                     });
                   }
                   break;
+                
+                case 'direct_response':
+                  // 直接响应（无function call时）
+                  aiResponseComplete = true;
+                  
+                  // 更新消息内容
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === loadingMsgId 
+                      ? { ...msg, content: data.data.content } 
+                      : msg
+                  ));
+                  
+                  // 清空结果（因为没有价格数据）
+                  onResults({
+                    items: [],
+                    filter: '',
+                    aiResponse: data.data.content
+                  });
+                  break;
                   
                 case 'error':
                   throw new Error(data.data.message || 'Unknown error in stream');

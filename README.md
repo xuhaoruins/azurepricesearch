@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Azure Price Agent
 
-## Getting Started
+Azure Price Agent 是一个基于自然语言搜索的 Azure 云服务价格查询工具，允许用户使用简单语言查询 Azure 各种服务的价格信息。
 
-First, run the development server:
+## 功能特点
+
+- 使用自然语言查询 Azure 服务价格
+- 显示详细的价格数据（SKU、地区、计量单位等）
+- 流式响应，快速获取查询结果
+- AI 助手提供解释及建议，帮助用户选择合适的 Azure 资源
+
+## 开发环境设置
+
+首先，运行开发服务器:
 
 ```bash
 npm run dev
-# or
+# 或
 yarn dev
-# or
+# 或
 pnpm dev
-# or
+# 或
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+在浏览器中访问 [http://localhost:3000](http://localhost:3000) 查看应用。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 环境变量配置
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+在开始使用前，请创建一个 `.env` 文件，并设置以下环境变量：
+```
+GITHUB_TOKEN=你的GitHub令牌
+OPENAI_API_BASE_URL=OpenAI API基础URL
+MODEL_NAME=使用的模型名称
+AOAI_API_BASE_URL=Azure OpenAI服务端点
+AOAI_KEY=Azure OpenAI服务密钥
+OPENAI_API_VERSION=OpenAI API版本
+AZURE_DEPLOYMENT_NAME=Azure部署名称
+```
 
-## Learn More
+## 项目架构
 
-To learn more about Next.js, take a look at the following resources:
+该项目使用以下技术栈:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js 15 - React 框架
+- TailwindCSS - UI 样式库
+- OpenAI API - 自然语言处理
+- Azure OpenAI 服务 - 提供 AI 响应
+- Azure Retail Prices API - 获取 Azure 价格数据
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 部署到 Azure Static Web Apps
 
-## Deploy on Vercel
+本项目配置为部署到 Azure Static Web Apps。项目中已包含 GitHub Actions 工作流配置（见 .github/workflows/azure-static-web-apps-wonderful-bush-0a52db800.yml）。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+部署步骤:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. 在 Azure 门户中创建一个新的 Static Web App 资源
+2. 将代码推送到 GitHub 仓库
+3. 在 Azure Static Web App 创建过程中链接到您的 GitHub 仓库
+4. 在 Azure Portal 中配置必要的环境变量
+
+更多关于 Azure Static Web Apps 的部署信息，请参考 [Azure Static Web Apps 文档](https://docs.microsoft.com/azure/static-web-apps/).
+
+## 了解更多
+
+- [Next.js 文档](https://nextjs.org/docs) - 了解 Next.js 功能和 API
+- [Azure Retail Prices API](https://docs.microsoft.com/rest/api/cost-management/retail-prices) - Azure 价格 API 文档
+- [GitHub 仓库](https://github.com/your-repo) - 项目源代码
